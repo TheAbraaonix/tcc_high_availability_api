@@ -1,0 +1,44 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pycache/
+*.pytest_cache/
+*.mypy_cache/
+*.ipynb_checkpoints/
+
+# --- Virtual Environment ---
+.venv/
+env/
+venv/
+
+# --- Logs ---
+*.log
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Editor/IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- HuggingFace / Model Cache ---
+.cache/
+# Note: Se você estiver fazendo bind do cache via docker, o cache local não precisa ir pro git
+
+# --- Environment files ---
+.env
+.env.*  # qualquer var env sensível
+
+# --- Docker ---
+# Ignore imagens, containers e volumes não versionáveis
+docker-compose.override.yml
+*.pid
+
+# --- PyTorch / Transformers ---
+*.pt
+*.pth

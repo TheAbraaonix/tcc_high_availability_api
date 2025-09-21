@@ -1,0 +1,10 @@
+services:
+  blip-api:
+    build: .
+    container_name: blip-api
+    env_file:
+      - .env
+    ports:
+      - "${PORT}:${PORT}"
+    volumes:
+      - ./.cache/huggingface:/app/.cache/huggingface
