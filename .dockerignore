@@ -1,0 +1,20 @@
+# Python / build
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.log
+
+# Virtual env local
+.venv/
+
+# Configs e secrets locais
+.env
+
+# Caches
+.cache/
+
+# Git
+.git/
+.gitignore
