@@ -88,6 +88,7 @@ def health():
         {
             "status": "ok" if loaded else "not_loaded",
             "model": APP_MODEL,
+            "version": "0.2",
             "device": str(device),
         }
     )
