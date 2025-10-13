@@ -4,6 +4,7 @@ from typing import Optional
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from PIL import Image
@@ -66,6 +67,16 @@ app = FastAPI(
     version="0.3",
     root_path="/api",
     lifespan=lifespan,
+)
+
+# CORS middleware - Allow all origins for open source research project
+# This is intentionally permissive to enable easy reproduction of thesis results
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
