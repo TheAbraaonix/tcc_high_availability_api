@@ -39,7 +39,7 @@ import asyncio
 import time
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -56,15 +56,6 @@ PORT = int(os.getenv("PORT", 8000))
 processor = None
 model = None
 device = None
-
-# Pydantic model for request validation
-class CaptionRequest(BaseModel):
-    image_url: Optional[str] = Field(None, alias="imageUrl")
-
-    class Config:
-        populate_by_name = True
-        validate_by_name = True
-
 
 # Lifespan context for FastAPI app
 @asynccontextmanager
@@ -145,24 +136,13 @@ def health():
     )
 
 
-def load_image_from_url(url: str) -> Image.Image:
-    resp = requests.get(url, stream=True, timeout=10)
-    resp.raise_for_status()
-    return Image.open(resp.raw).convert("RGB")
-
-
 @app.post("/caption")
-async def caption_endpoint(request: Request, payload: CaptionRequest):
-    if not payload.image_url:
-        raise HTTPException(
-            status_code=400, detail="Field 'imageUrl' is required in JSON body."
-        )
-
+async def caption_endpoint(request: Request, file: UploadFile = File(...)):
     worker_pid = os.getpid()
     start_time = time.time()
     timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
 
-    print(f"[{timestamp}] [worker_pid={worker_pid}] Received caption request for {payload.image_url}")
+    print(f"[{timestamp}] [worker_pid={worker_pid}] Received caption request for file: {file.filename}")
 
     # Use semaphore to ensure only 1 request processes at a time per worker
     async with request.app.state.inference_semaphore:
@@ -173,10 +153,13 @@ async def caption_endpoint(request: Request, payload: CaptionRequest):
         print(f"[{timestamp}] [worker_pid={worker_pid}] Processing request (acquired semaphore after {wait_time:.3f}s wait)")
 
         try:
-            # Run blocking image download in thread pool
-            download_start = time.time()
-            img = await asyncio.to_thread(load_image_from_url, payload.image_url)
-            download_time = time.time() - download_start
+            # Read uploaded file and convert to PIL Image (runs in thread pool)
+            async def load_image():
+                contents = await file.read()
+                from io import BytesIO
+                return Image.open(BytesIO(contents)).convert("RGB")
+
+            img = await load_image()
 
             # Run blocking ML inference in thread pool
             def run_inference():
@@ -194,16 +177,13 @@ async def caption_endpoint(request: Request, payload: CaptionRequest):
             timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
 
             print(f"[{timestamp}] [worker_pid={worker_pid}] Generated caption: {caption}")
-            print(f"[{timestamp}] [worker_pid={worker_pid}] Timings - Wait: {wait_time:.3f}s, Download: {download_time:.3f}s, Inference: {inference_time:.3f}s, Total: {total_time:.3f}s")
+            print(f"[{timestamp}] [worker_pid={worker_pid}] Timings - Wait: {wait_time:.3f}s, Inference: {inference_time:.3f}s, Total: {total_time:.3f}s")
 
             return {"caption": caption}
 
-        except requests.RequestException as e:
-            print(f"[worker_pid={worker_pid}] Image download failed: {e}")
-            raise HTTPException(status_code=400, detail=f"Could not download image: {str(e)}")
         except Exception as e:
-            print(f"[worker_pid={worker_pid}] Inference error: {e}")
-            raise HTTPException(status_code=500, detail=f"Inference error: {str(e)}")
+            print(f"[worker_pid={worker_pid}] Error processing image: {e}")
+            raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
 
 
 # Local development setup
