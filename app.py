@@ -128,7 +128,7 @@ def health():
         {
             "status": "ok" if loaded else "not_loaded",
             "model": APP_MODEL,
-            "version": "0.2",
+            "version": "0.3",
             "device": str(device),
             "worker_pid": worker_pid,
             "workers_configured": os.getenv("WORKERS", "1"),
